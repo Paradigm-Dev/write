@@ -6,19 +6,19 @@ module.exports = {
 			removeElectronJunk: true,
 			nodeIntegration: true,
 			builderOptions: {
-				productName: 'Wire',
+				productName: 'Write',
 				mac: {
 					darkModeSupport: true
 				},
 				dmg: {
-					artifactName: 'Wire-v${version}.${ext}',
-					title: 'Wire'
+					artifactName: 'Write-v${version}.${ext}',
+					title: 'Write'
 				},
 				nsis: {
-					artifactName: 'Wire-v${version}.${ext}',
+					artifactName: 'Write-v${version}.${ext}',
 					deleteAppDataOnUninstall: true,
-					shortcutName: 'Wire',
-					uninstallDisplayName: 'Wire'
+					shortcutName: 'Write',
+					uninstallDisplayName: 'Write'
 				}
 			}
 		}
