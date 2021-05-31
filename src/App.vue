@@ -220,7 +220,7 @@
           </div>
           <v-list class="transparent" nav>
             <v-list-item
-              @click
+              @click.stop
               @mouseover="recent_file_hover = index"
               @mouseleave="recent_file_hover = -1"
               v-for="(file, index) in recent_files"
@@ -288,7 +288,12 @@
           </v-tabs>
         </v-toolbar>
 
-        <v-toolbar dense color="grey darken-4" class="d-print-none">
+        <v-toolbar
+          v-if="current"
+          dense
+          color="grey darken-4"
+          class="d-print-none"
+        >
           <v-tabs-items class="transparent" v-model="tab">
             <v-tab-item>
               <v-btn text tile large @click="saveDocument()"
@@ -737,14 +742,7 @@
             </v-tab-item>
 
             <v-tab-item>
-              <v-btn
-                large
-                text
-                tile
-                @click="
-                  window.open('https://cdn-upload.onthezetacloud.com/'),
-                    insertImage()
-                "
+              <v-btn large text tile @click="image_dialog.open = true"
                 ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
                   >mdi-image</v-icon
                 >Image</v-btn
@@ -821,11 +819,32 @@
             </v-tab-item>
 
             <v-tab-item>
-              <v-btn large text tile disabled
-                ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
-                  >mdi-magnify-plus-outline</v-icon
-                >Zoom</v-btn
-              >
+              <v-menu offset-y :close-on-content-click="false">
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn large text tile v-bind="attrs" v-on="on"
+                    ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
+                      >mdi-magnify-plus-outline</v-icon
+                    >Zoom</v-btn
+                  >
+                </template>
+                <v-card>
+                  <v-slider
+                    v-if="current.settings"
+                    class="pa-3"
+                    hide-details
+                    style="width: 200px"
+                    :min="0.01"
+                    :max="2"
+                    :step="0.01"
+                    v-model="current.settings.zoom"
+                    :label="Math.round(current.settings.zoom * 100) + '%'"
+                    @input="
+                      document.querySelector('.page').style.zoom =
+                        current.settings.zoom
+                    "
+                  ></v-slider>
+                </v-card>
+              </v-menu>
 
               <v-btn large text tile disabled
                 ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
@@ -859,8 +878,9 @@
           @click="tiptap.commands.focus()"
         >
           <v-card
+            ref="page"
             style="margin: auto; min-height: 1071px; cursor: text"
-            class="my-3"
+            class="my-3 page"
             width="828"
             light
             tile
@@ -922,6 +942,7 @@
             <v-card-actions>
               <v-spacer></v-spacer>
               <v-btn
+                :disabled="!link_dialog.url"
                 color="blue"
                 text
                 @click="
@@ -932,6 +953,51 @@
                     .run(),
                     (link_dialog = { open: false, url: '' })
                 "
+                >Insert</v-btn
+              >
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <v-dialog
+          @click:outside="image_dialog = { open: false, file: null }"
+          v-model="image_dialog.open"
+          max-width="400"
+          class="d-print-none"
+        >
+          <v-card>
+            <v-btn
+              @click="image_dialog = { open: false, file: null }"
+              fab
+              text
+              x-small
+              absolute
+              top
+              right
+              class="mt-8"
+              color="grey"
+              ><v-icon>mdi-close</v-icon></v-btn
+            >
+
+            <v-card-title class="font-weight-regular"
+              >Insert Image</v-card-title
+            >
+
+            <v-card-text>
+              <v-file-input
+                prepend-icon="mdi-image"
+                label="Image"
+                v-model="image_dialog.file"
+              ></v-file-input>
+            </v-card-text>
+
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                :disabled="!image_dialog.file"
+                color="blue"
+                text
+                @click="insertImage()"
                 >Insert</v-btn
               >
             </v-card-actions>
@@ -956,11 +1022,11 @@ import TextAlign from "@tiptap/extension-text-align";
 import Typography from "@tiptap/extension-typography";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import { Image } from "./extensions/image.js";
 import { Color } from "./extensions/fontColor.js";
 import { LineSpacing } from "./extensions/lineSpacing.js";
 import { FontFamily } from "./extensions/fontFamily.js";
 import fs from "fs";
-import moment from "moment";
 
 const store = new Store();
 export default {
@@ -987,6 +1053,7 @@ export default {
         Typography,
         TaskList,
         TaskItem,
+        Image,
         Color,
         LineSpacing,
       ],
@@ -1001,11 +1068,17 @@ export default {
       open: false,
       url: "",
     },
+    image_dialog: {
+      open: false,
+      file: null,
+    },
     change: false,
     path: "",
 
     window,
     shell,
+    document,
+    Math,
   }),
   async created() {
     if (store.get("jwt")) {
@@ -1030,11 +1103,22 @@ export default {
       this.change = true;
     });
 
-    window.addEventListener("keyup", (e) => {
-      if (e.code == "KeyS" && (e.ctrlKey || e.metaKey) && this.current)
-        this.saveDocument();
-      if (e.code == "KeyP" && (e.ctrlKey || e.metaKey) && this.current)
-        this.printDocument();
+    window.addEventListener("keydown", (e) => {
+      if (process.platform == "darwin") {
+        if (e.code == "KeyS" && e.metaKey && this.current) this.saveDocument();
+        if (e.code == "KeyP" && e.metaKey && this.current) this.printDocument();
+        if (e.code == "KeyN" && e.metaKey && this.current) {
+          e.preventDefault();
+          this.newDocument();
+        }
+      } else {
+        if (e.code == "KeyS" && e.ctrlKey && this.current) this.saveDocument();
+        if (e.code == "KeyP" && e.ctrlKey && this.current) this.printDocument();
+        if (e.code == "KeyN" && e.ctrlKey && this.current) {
+          e.preventDefault();
+          this.newDocument();
+        }
+      }
     });
   },
   methods: {
@@ -1089,7 +1173,12 @@ export default {
     },
 
     newDocument() {
-      this.current = {};
+      this.current = {
+        html: "",
+        settings: {
+          zoom: 1,
+        },
+      };
       this.tiptap.commands.setContent("");
       this.tiptap.commands.focus();
       this.isNew = true;
@@ -1103,6 +1192,7 @@ export default {
           JSON.stringify({
             html,
             title: this.path.substring(this.path.lastIndexOf("/") + 1),
+            settings: this.current.settings,
           })
         );
       } else {
@@ -1118,6 +1208,17 @@ export default {
             ],
           })
           .then((result) => {
+            fs.writeFileSync(
+              result.filePath,
+              JSON.stringify({
+                html,
+                title: result.filePath.substring(
+                  result.filePath.lastIndexOf("/") + 1
+                ),
+                settings: this.current.settings,
+              })
+            );
+
             this.recent_files.splice(0, 0, {
               title: this.title,
               path: result.filePath,
@@ -1166,6 +1267,9 @@ export default {
       this.current = file;
       store.set("recent_files", this.recent_files);
       this.recent_file_hover = -1;
+      setTimeout(() => {
+        document.querySelector(".page").style.zoom = this.current.settings.zoom;
+      }, 1);
     },
     closeDocument() {
       this.change = false;
@@ -1173,6 +1277,20 @@ export default {
     },
     printDocument() {
       remote.getCurrentWebContents().print();
+    },
+    insertImage() {
+      const setImage = () => {
+        this.tiptap.chain().focus().setImage({ src: reader.result }).run();
+        this.image_dialog = {
+          open: false,
+          file: null,
+        };
+      };
+      let reader = new FileReader();
+      reader.onloadend = () => {
+        setImage();
+      };
+      reader.readAsDataURL(this.image_dialog.file);
     },
     removeFromRecents(index) {
       this.recent_files.splice(index, 1);
