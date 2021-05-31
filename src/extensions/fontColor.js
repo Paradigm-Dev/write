@@ -11,7 +11,7 @@ export const Color = Extension.create({
         types: this.options.types,
         attributes: {
           color: {
-            default: "#FFFFFF",
+            default: "#000000",
             renderHTML: (attributes) => {
               if (!attributes.color) {
                 return {};

@@ -8,7 +8,7 @@
       height="38"
       :class="{ 'elevation-3': $root.user && !current }"
       :color="$root.user ? 'blue darken-4' : 'transparent'"
-      class="pr-0"
+      class="pr-0 d-print-none"
     >
       <v-fade-transition group leave-absolute>
         <div
@@ -61,13 +61,30 @@
       height="38"
       :class="{ 'elevation-3': $root.user && !current }"
       :color="$root.user ? 'blue darken-4' : 'transparent'"
+      class="d-print-none"
     >
       <div
-        style="height: 12px; width: 12px; border-radius: 12px; z-index: 100"
+        style="
+          height: 12px;
+          width: 12px;
+          border-radius: 12px;
+          z-index: 100;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        "
         v-ripple
         @click="close()"
         class="red lighten-1 mx-1"
-      ></div>
+      >
+        <div
+          v-if="change"
+          style="height: 5px; width: 5px; border-radius: 6px; z-index: 101"
+          v-ripple
+          @click="close()"
+          class="red darken-4 mx-1"
+        ></div>
+      </div>
       <div
         style="height: 12px; width: 12px; border-radius: 12px; z-index: 100"
         v-ripple
@@ -115,7 +132,7 @@
       />
     </v-system-bar>
 
-    <v-main v-if="!$root.user" key="login">
+    <v-main v-if="!$root.user" key="login" class="d-print-none">
       <div
         style="max-width: 28rem; padding-top: 5rem"
         class="mx-auto text-center"
@@ -177,7 +194,7 @@
     </v-main>
 
     <v-main v-else style="overflow: hidden">
-      <main v-if="!current">
+      <main v-if="!current && recent_files" class="d-print-none">
         <v-container style="max-width: 876px">
           <h3 class="text-h3 mt-12 font-weight-light">
             Welcome,
@@ -191,7 +208,16 @@
           <!-- <v-row> -->
           <!-- <v-col cols="9"> -->
           <p class="mt-6 mb-1 grey--text">Recent files</p>
-          <div v-if="recent_files.length == 0">No recently opened files</div>
+          <div v-if="recent_files.length == 0" class="text-center mt-12">
+            <v-img
+              height="125"
+              width="125"
+              src="./assets/no_recents.png"
+              class="ma-auto mb-5"
+            ></v-img>
+            <h4 class="text-h4 mb-5">You haven't opened any files recently</h4>
+            <v-btn color="blue darken-2" @click="openOpenDialog()">Open</v-btn>
+          </div>
           <v-list class="transparent" nav>
             <v-list-item
               @click
@@ -243,7 +269,12 @@
       </main>
 
       <main v-else>
-        <v-toolbar dense color="blue darken-4" style="z-index: 1">
+        <v-toolbar
+          dense
+          color="blue darken-4"
+          style="z-index: 1"
+          class="d-print-none"
+        >
           <v-tabs v-model="tab" color="white">
             <v-tabs-slider color="white"></v-tabs-slider>
 
@@ -257,7 +288,7 @@
           </v-tabs>
         </v-toolbar>
 
-        <v-toolbar dense color="grey darken-4">
+        <v-toolbar dense color="grey darken-4" class="d-print-none">
           <v-tabs-items class="transparent" v-model="tab">
             <v-tab-item>
               <v-btn text tile large @click="saveDocument()"
@@ -272,7 +303,7 @@
                 ><v-icon left>mdi-plus</v-icon>New</v-btn
               >
 
-              <v-btn text tile large disabled
+              <v-btn text tile large @click="printDocument()"
                 ><v-icon left>mdi-printer</v-icon>Print</v-btn
               >
             </v-tab-item>
@@ -824,14 +855,18 @@
             overflow-y: auto;
             overflow-x: hidden;
           "
+          class="d-print-none"
           @click="tiptap.commands.focus()"
         >
           <v-card
             style="margin: auto; min-height: 1071px; cursor: text"
             class="my-3"
             width="828"
+            light
+            tile
           >
             <editor-content
+              @update="change = true"
               style="
                 overflow-y: auto;
                 overflow-x: hidden;
@@ -844,10 +879,13 @@
           </v-card>
         </div>
 
+        <div class="d-none d-print-block" v-html="tiptap.getHTML()"></div>
+
         <v-dialog
           @click:outside="link_dialog = { open: false, url: '' }"
           v-model="link_dialog.open"
           max-width="400"
+          class="d-print-none"
         >
           <v-card>
             <v-btn
@@ -963,6 +1001,8 @@ export default {
       open: false,
       url: "",
     },
+    change: false,
+    path: "",
 
     window,
     shell,
@@ -985,6 +1025,17 @@ export default {
       if (this.$root.user !== data) this.$root.user = data;
     });
     this.recent_files = store.get("recent_files");
+
+    this.tiptap.on("update", ({ editor }) => {
+      this.change = true;
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.code == "KeyS" && (e.ctrlKey || e.metaKey) && this.current)
+        this.saveDocument();
+      if (e.code == "KeyP" && (e.ctrlKey || e.metaKey) && this.current)
+        this.printDocument();
+    });
   },
   methods: {
     close() {
@@ -1042,40 +1093,39 @@ export default {
       this.tiptap.commands.setContent("");
       this.tiptap.commands.focus();
       this.isNew = true;
+      this.change = false;
     },
     saveDocument() {
       const html = this.tiptap.getHTML();
-      remote.dialog
-        .showSaveDialog({
-          title: "Save file",
-          defaultPath: this.title,
-          filters: [
-            {
-              name: "Write files",
-              extensions: ["write"],
-            },
-          ],
-        })
-        .then((result) => {
-          fs.writeFileSync(
-            result.filePath,
-            JSON.stringify({
-              html,
-              title: result.filePath.substring(
-                result.filePath.lastIndexOf("/") + 1
-              ),
-            })
-          );
-          if (this.isNew) {
+      if (!this.isNew) {
+        fs.writeFileSync(
+          this.path,
+          JSON.stringify({
+            html,
+            title: this.path.substring(this.path.lastIndexOf("/") + 1),
+          })
+        );
+      } else {
+        remote.dialog
+          .showSaveDialog({
+            title: "Save file",
+            defaultPath: this.title,
+            filters: [
+              {
+                name: "Write files",
+                extensions: ["write"],
+              },
+            ],
+          })
+          .then((result) => {
             this.recent_files.splice(0, 0, {
               title: this.title,
               path: result.filePath,
             });
             store.set("recent_files", this.recent_files);
-          }
-          if (result.filePath != this.current.path)
-            this.openDocument(result.filePath);
-        });
+          });
+      }
+      this.change = false;
     },
     openOpenDialog() {
       remote.dialog
@@ -1093,7 +1143,9 @@ export default {
         });
     },
     openDocument(path) {
+      this.change = false;
       this.isNew = false;
+      this.path = path;
       const file = JSON.parse(fs.readFileSync(path));
       const data = {
         title: file.title,
@@ -1116,7 +1168,11 @@ export default {
       this.recent_file_hover = -1;
     },
     closeDocument() {
+      this.change = false;
       this.current = false;
+    },
+    printDocument() {
+      remote.getCurrentWebContents().print();
     },
     removeFromRecents(index) {
       this.recent_files.splice(index, 1);
@@ -1151,6 +1207,7 @@ export default {
 html,
 body {
   overflow: hidden !important;
+  background-color: #121212;
 }
 
 /* Scrollbar */
@@ -1185,5 +1242,14 @@ textarea {
 span {
   font-family: inherit;
   // display: inline-block;
+}
+@media print {
+  .v-main {
+    padding: 0px !important;
+  }
+
+  div {
+    color: black;
+  }
 }
 </style>

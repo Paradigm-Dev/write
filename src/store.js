@@ -4,6 +4,7 @@ import fs from "fs";
 
 const defaults = {
   bounds: { width: 1300, height: 800 },
+  recent_files: [],
 };
 
 class Store {
