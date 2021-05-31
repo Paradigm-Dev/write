@@ -27,7 +27,7 @@ module.exports = {
 		https: false,
 		proxy: {
 			'^/api': {
-				target: 'https://www.theparadigmdev.com',
+				target: 'https://www.theparadigm.ga',
 				changeOrigin: true,
 				ws: true,
 				cookieDomainRewrite: {
