@@ -17,10 +17,10 @@ export const FontFamily = Extension.create({
                 return {
                   style: "font-family: Roboto",
                 };
-              }
-              return {
-                style: `font-family: ${attributes.fontFamily}`,
-              };
+              } else
+                return {
+                  style: `font-family: ${attributes.fontFamily}`,
+                };
             },
             parseHTML: (element) => ({
               fontFamily: element.style.fontFamily.replace(/['"]+/g, ""),

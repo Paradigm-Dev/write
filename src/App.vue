@@ -1183,6 +1183,11 @@ export default {
       this.tiptap.commands.focus();
       this.isNew = true;
       this.change = false;
+      this.title = "New document.write";
+      if (this.tab == 0) this.tab = 1;
+      setTimeout(() => {
+        document.querySelector(".page").style.zoom = 1;
+      }, 1);
     },
     saveDocument() {
       const html = this.tiptap.getHTML();
@@ -1195,7 +1200,7 @@ export default {
             settings: this.current.settings,
           })
         );
-      } else {
+      } else if (this.isNew) {
         remote.dialog
           .showSaveDialog({
             title: "Save file",
@@ -1267,6 +1272,7 @@ export default {
       this.current = file;
       store.set("recent_files", this.recent_files);
       this.recent_file_hover = -1;
+      if (this.tab == 0) this.tab = 1;
       setTimeout(() => {
         document.querySelector(".page").style.zoom = this.current.settings.zoom;
       }, 1);
