@@ -283,6 +283,7 @@
             <v-tab>Insert</v-tab>
             <v-tab>Layout</v-tab>
             <v-tab>Review</v-tab>
+            <v-tab v-if="tiptap.isActive('table')">Table</v-tab>
             <v-tab>Settings</v-tab>
             <v-tab>Help</v-tab>
           </v-tabs>
@@ -296,20 +297,20 @@
         >
           <v-tabs-items class="transparent" v-model="tab">
             <v-tab-item>
-              <v-btn text tile large @click="saveDocument()"
-                ><v-icon left>mdi-content-save</v-icon>Save</v-btn
+              <v-btn large text tile @click="saveDocument()"
+                ><v-icon class="mr-2 ml-n2">mdi-content-save</v-icon>Save</v-btn
               >
 
-              <v-btn text tile large @click="openOpenDialog()"
-                ><v-icon left>mdi-folder-open</v-icon>Open</v-btn
+              <v-btn large text tile @click="openOpenDialog()"
+                ><v-icon class="mr-2 ml-n2">mdi-folder-open</v-icon>Open</v-btn
               >
 
-              <v-btn text tile large @click="newDocument()"
-                ><v-icon left>mdi-plus</v-icon>New</v-btn
+              <v-btn large text tile @click="newDocument()"
+                ><v-icon class="mr-2 ml-n2">mdi-plus</v-icon>New</v-btn
               >
 
-              <v-btn text tile large @click="printDocument()"
-                ><v-icon left>mdi-printer</v-icon>Print</v-btn
+              <v-btn large text tile @click="printDocument()"
+                ><v-icon class="mr-2 ml-n2">mdi-printer</v-icon>Print</v-btn
               >
             </v-tab-item>
 
@@ -743,18 +744,14 @@
 
             <v-tab-item>
               <v-btn large text tile @click="image_dialog.open = true"
-                ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
-                  >mdi-image</v-icon
-                >Image</v-btn
+                ><v-icon class="mr-2 ml-n2">mdi-image</v-icon>Image</v-btn
               >
               <v-btn
                 large
                 text
                 tile
                 @click="link_dialog = { open: true, url: '' }"
-                ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
-                  >mdi-link</v-icon
-                >Link</v-btn
+                ><v-icon class="mr-2 ml-n2">mdi-link</v-icon>Link</v-btn
               >
 
               <v-btn
@@ -762,29 +759,31 @@
                 text
                 tile
                 @click="tiptap.chain().focus().setHorizontalRule().run()"
-                ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
-                  >mdi-minus</v-icon
-                >Line</v-btn
+                ><v-icon class="mr-2 ml-n2">mdi-minus</v-icon>Line</v-btn
+              >
+
+              <v-btn
+                large
+                text
+                tile
+                @click="tiptap.chain().focus().insertTable().run()"
+                ><v-icon class="mr-2 ml-n2">mdi-table</v-icon>Table</v-btn
               >
             </v-tab-item>
 
             <v-tab-item>
               <v-btn large text tile disabled
-                ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
-                  >mdi-border-outside</v-icon
+                ><v-icon class="mr-2 ml-n2">mdi-border-outside</v-icon
                 >Margins</v-btn
               >
 
               <v-btn large text tile disabled
-                ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
-                  >mdi-phone-rotate-landscape</v-icon
+                ><v-icon class="mr-2 ml-n2">mdi-phone-rotate-landscape</v-icon
                 >Orientation</v-btn
               >
 
               <v-btn large text tile disabled
-                ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
-                  >mdi-resize</v-icon
-                >Size</v-btn
+                ><v-icon class="mr-2 ml-n2">mdi-resize</v-icon>Size</v-btn
               >
             </v-tab-item>
 
@@ -808,13 +807,153 @@
               </v-btn>
 
               <v-btn large text tile disabled
-                ><v-icon class="mr-2 ml-n2" style="margin-bottom: -2px"
-                  >mdi-translate</v-icon
+                ><v-icon class="mr-2 ml-n2">mdi-translate</v-icon
                 >Translate</v-btn
               >
 
               <v-btn icon tile disabled>
                 <v-icon>mdi-share-variant</v-icon>
+              </v-btn>
+            </v-tab-item>
+
+            <v-tab-item v-if="tiptap.isActive('table')">
+              <v-menu offset-y>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn text large tile v-bind="attrs" v-on="on">
+                    <v-icon class="mr-2 ml-n2">mdi-plus</v-icon>Insert
+                  </v-btn>
+                </template>
+                <v-list dense>
+                  <v-subheader class="mt-n2">Insert</v-subheader>
+                  <v-list-item
+                    @click="tiptap.chain().focus().addColumnBefore().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon
+                        >mdi-table-column-plus-before</v-icon
+                      ></v-list-item-icon
+                    >
+                    <v-list-item-title>Add Column Before</v-list-item-title>
+                  </v-list-item>
+
+                  <v-list-item
+                    @click="tiptap.chain().focus().addColumnAfter().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon
+                        >mdi-table-column-plus-after</v-icon
+                      ></v-list-item-icon
+                    >
+                    <v-list-item-title>Add Column After</v-list-item-title>
+                  </v-list-item>
+                  <v-divider></v-divider>
+                  <v-list-item
+                    @click="tiptap.chain().focus().addRowBefore().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon
+                        >mdi-table-row-plus-before</v-icon
+                      ></v-list-item-icon
+                    >
+                    <v-list-item-title>Add Row Above</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item
+                    @click="tiptap.chain().focus().addRowAfter().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon
+                        >mdi-table-row-plus-after</v-icon
+                      ></v-list-item-icon
+                    >
+                    <v-list-item-title>Add Row Below</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+
+              <v-menu offset-y>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn text large tile v-bind="attrs" v-on="on">
+                    <v-icon class="mr-2 ml-n2">mdi-close</v-icon>Remove
+                  </v-btn>
+                </template>
+                <v-list dense>
+                  <v-subheader class="mt-n2">Remove</v-subheader>
+                  <v-list-item
+                    @click="tiptap.chain().focus().deleteColumn().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon
+                        >mdi-table-column-remove</v-icon
+                      ></v-list-item-icon
+                    >
+                    <v-list-item-title>Delete Column</v-list-item-title>
+                  </v-list-item>
+
+                  <v-list-item
+                    @click="tiptap.chain().focus().deleteRow().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon>mdi-table-row-remove</v-icon></v-list-item-icon
+                    >
+                    <v-list-item-title>Delete Row</v-list-item-title>
+                  </v-list-item>
+                  <v-divider></v-divider>
+                  <v-list-item
+                    @click="tiptap.chain().focus().deleteTable().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon>mdi-table-remove</v-icon></v-list-item-icon
+                    >
+                    <v-list-item-title>Delete Table</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+
+              <v-menu offset-y>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn text large tile v-bind="attrs" v-on="on">
+                    <v-icon class="mr-2 ml-n2">mdi-table</v-icon>Headers
+                  </v-btn>
+                </template>
+                <v-list dense>
+                  <v-subheader class="mt-n2">Headers</v-subheader>
+                  <v-list-item
+                    @click="tiptap.chain().focus().toggleHeaderColumn().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon>mdi-table-column</v-icon></v-list-item-icon
+                    >
+                    <v-list-item-title>Toggle Header Column</v-list-item-title>
+                  </v-list-item>
+
+                  <v-list-item
+                    @click="tiptap.chain().focus().toggleHeaderRow().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon>mdi-table-row</v-icon></v-list-item-icon
+                    >
+                    <v-list-item-title>Toggle Header Row</v-list-item-title>
+                  </v-list-item>
+                  <v-divider></v-divider>
+                  <v-list-item
+                    @click="tiptap.chain().focus().toggleHeaderCell().run()"
+                  >
+                    <v-list-item-icon
+                      ><v-icon>mdi-table-column-width</v-icon></v-list-item-icon
+                    >
+                    <v-list-item-title>Toggle Header Cell</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+
+              <v-btn
+                text
+                large
+                tile
+                @click="tiptap.chain().focus().mergeOrSplit().run()"
+              >
+                <v-icon class="mr-2 ml-n2">mdi-table-merge-cells</v-icon
+                >Merge/Split Cells
               </v-btn>
             </v-tab-item>
 
@@ -859,12 +998,7 @@
               >
             </v-tab-item>
 
-            <v-tab-item
-              >Recieve online technical support from trained technicians:
-              <a href="mailto:paradigmdevelop@gmail.com"
-                >paradigmdevelop@gmail.com</a
-              ></v-tab-item
-            >
+            <v-tab-item> Figure it out yourself </v-tab-item>
           </v-tabs-items>
         </v-toolbar>
 
@@ -1022,6 +1156,10 @@ import TextAlign from "@tiptap/extension-text-align";
 import Typography from "@tiptap/extension-typography";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
 import { Image } from "./extensions/image.js";
 import { Color } from "./extensions/fontColor.js";
 import { LineSpacing } from "./extensions/lineSpacing.js";
@@ -1056,6 +1194,12 @@ export default {
         Image,
         Color,
         LineSpacing,
+        Table.configure({
+          resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
       ],
     }),
     current: false,
@@ -1353,8 +1497,67 @@ body {
 }
 
 .ProseMirror {
+  table {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    margin: 0;
+    overflow: hidden;
+
+    td,
+    th {
+      min-width: 1em;
+      border: 2px solid #ced4da;
+      padding: 3px 5px;
+      vertical-align: top;
+      box-sizing: border-box;
+      position: relative;
+
+      > * {
+        margin-bottom: 0;
+      }
+    }
+
+    th {
+      font-weight: bold;
+      text-align: left;
+      background-color: #f1f3f5;
+    }
+
+    .selectedCell:after {
+      z-index: 2;
+      position: absolute;
+      content: "";
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      background: rgba(200, 200, 255, 0.4);
+      pointer-events: none;
+    }
+
+    .column-resize-handle {
+      position: absolute;
+      right: -2px;
+      top: 0;
+      bottom: -2px;
+      width: 4px;
+      background-color: #adf;
+      pointer-events: none;
+    }
+  }
   outline: none !important;
   height: 100%;
+}
+
+.tableWrapper {
+  padding: 1rem 0;
+  overflow-x: auto;
+}
+
+.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
 }
 
 input,
@@ -1375,5 +1578,9 @@ span {
   div {
     color: black;
   }
+}
+
+.v-toolbar .v-btn {
+  height: 48px !important;
 }
 </style>
